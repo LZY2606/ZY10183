@@ -34,3 +34,6 @@ coverage/
 .vite/
 .turbo/
 *.tsbuildinfo
+
+# 本地服务运行产生的数据库
+pinpai.db

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>频弧辨证台</title>
+<style>
+  :root { --bg:#0f1420; --panel:#182031; --line:#2b3750; --fg:#e8edf6;
+          --muted:#93a0b8; --accent:#6db1ff; --warn:#ffb454; --bad:#ff6b6b;
+          --ok:#4ec989; --chip:#22304a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  header { padding:14px 22px; border-bottom:1px solid var(--line);
+           display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  header h1 { font-size:20px; margin:0; letter-spacing:2px; }
+  header .sub { color:var(--muted); font-size:12px; }
+  header .spacer { flex:1; }
+  button, select, input, textarea { font:inherit; color:var(--fg);
+         background:#10172a; border:1px solid var(--line); border-radius:6px;
+         padding:6px 10px; }
+  button { cursor:pointer; background:#1d2c46; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:#24528a; border-color:#2f6ab0; }
+  button.danger { background:#3a2230; }
+  .layout { display:grid; grid-template-columns:340px 1fr; gap:14px; padding:14px 22px; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:10px; padding:14px; margin-bottom:14px; }
+  .panel h2 { font-size:14px; margin:0 0 10px; color:var(--accent);
+              letter-spacing:1px; }
+  .row { display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap; }
+  .row label { color:var(--muted); min-width:64px; font-size:12px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .mono { font-family:ui-monospace,Menlo,Consolas,monospace; }
+  textarea { width:100%; min-height:46px; }
+  table { border-collapse:collapse; width:100%; font-size:12px; }
+  th,td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:right; }
+  th { color:var(--muted); font-weight:normal; text-align:right; }
+  th:first-child,td:first-child { text-align:left; }
+  .chip { display:inline-block; background:var(--chip); border-radius:10px;
+          padding:1px 9px; font-size:11px; margin-right:4px; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  canvas { width:100%; background:#0d1320; border:1px solid var(--line);
+           border-radius:8px; }
+  .tabs { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .tab { padding:4px 12px; border-radius:14px; background:#141d2e; cursor:pointer;
+         border:1px solid var(--line); font-size:12px; }
+  .tab.active { background:#24528a; border-color:#2f6ab0; }
+  .plist td.fix { color:var(--warn); }
+  .corrwrap { overflow:auto; max-height:280px; }
+  .starts { max-height:300px; overflow:auto; }
+  .tree { font-size:12px; }
+  .tree div { padding:3px 6px; border-radius:5px; cursor:pointer; }
+  .tree div:hover { background:#1f2b42; }
+  .tree div.sel { background:#24528a; }
+  .note { background:#101a2c; border-left:3px solid var(--accent);
+          padding:8px 10px; border-radius:4px; font-size:12px; color:#c4d2ea;
+          margin:8px 0; white-space:pre-wrap; }
+  .badge { padding:1px 8px; border-radius:10px; font-size:11px; }
+  .badge.converged { background:#173a2a; color:var(--ok); }
+  .badge.at_bound { background:#3d2f16; color:var(--warn); }
+  .badge.max_iter { background:#3a2230; color:var(--bad); }
+  dialog { background:var(--panel); color:var(--fg); border:1px solid var(--line);
+           border-radius:10px; max-width:560px; width:92%; }
+  dialog::backdrop { background:rgba(0,0,0,.55); }
+</style>
+</head>
+<body>
+<header>
+  <h1>频弧辨证台</h1>
+  <span class="sub">受限 R / C / L / CPE / Warburg 网络 · 多起点拟合 · 可辨识性辨证</span>
+  <span class="spacer"></span>
+  <button onclick="exportAll()">导出运行记录</button>
+  <button onclick="document.getElementById('impfile').click()">导入复核</button>
+  <input id="impfile" type="file" accept=".json,application/json" style="display:none"
+         onchange="importAll(this.files[0])">
+  <button class="danger" onclick="resetDb()">清空并重置</button>
+</header>
+
+<div class="layout">
+  <div>
+    <div class="panel">
+      <h2>① 数据集</h2>
+      <select id="dsSel" style="width:100%" onchange="loadDataset()"></select>
+      <div id="dsInfo" class="muted" style="margin-top:6px"></div>
+      <details style="margin-top:8px"><summary class="muted">上传 CSV（freq_h,zreal,zimag）</summary>
+        <input id="dsName" placeholder="名称" style="width:100%;margin:6px 0">
+        <textarea id="dsCsv" placeholder="freq_hz,zreal,zimag&#10;0,1,2&#10;1,210,-12"></textarea>
+        <button class="primary" onclick="uploadDataset()">上传</button>
+        <div id="dsMsg" class="muted"></div>
+      </details>
+    </div>
+
+    <div class="panel">
+      <h2>② 候选电路</h2>
+      <select id="cSel" style="width:100%" onchange="loadCircuit()"></select>
+      <div class="muted" id="cNote"></div>
+      <label class="muted">规范表达式</label>
+      <textarea id="cExpr" class="mono"></textarea>
+      <div class="muted" style="margin:4px 0">
+        文法：<span class="mono">s(...)</span> 串联、<span class="mono">p(...)</span>
+        并联；元件 <span class="mono">r c l w cpe</span>，同类多个用
+        <span class="mono">:标签</span>。顶层逗号即串联。
+      </div>
+      <button onclick="validateExpr()">校验/补全参数</button>
+      <button class="primary" onclick="saveCircuit()">保存候选</button>
+      <button onclick="newCircuit()">另存为新候选</button>
+      <table id="paramTable" class="plist"></table>
+      <div class="note" id="convNote"></div>
+    </div>
+
+    <div class="panel">
+      <h2>③ 拟合控制</h2>
+      <div class="row"><label>权重</label>
+        <select id="wMode">
+          <option value="modulus">modulus（1/|Z|²）</option>
+          <option value="unit">unit（等权）</option>
+        </select></div>
+      <div class="row"><label>频率权重 γ</label>
+        <input id="gamma" type="number" step="0.1" value="0" style="width:90px">
+        <span class="muted">乘子 (f/f₀)^(2γ)</span></div>
+      <div class="row"><label>起点数</label>
+        <input id="nStarts" type="number" value="12" min="1" max="24" style="width:70px">
+        <label>种子</label><input id="seed" type="number" value="1186" style="width:90px"></div>
+      <button class="primary" style="width:100%" onclick="runFit()">多起点拟合</button>
+      <div class="muted" style="margin-top:8px">固定参数重跑（子版本，父版本保留）：</div>
+      <div id="fixBox" class="muted" style="margin:4px 0"></div>
+      <button onclick="refitFixed()">固定所选参数并重跑</button>
+      <button onclick="refitGamma()">仅修改 γ=0.5 重跑</button>
+    </div>
+
+    <div class="panel">
+      <h2>④ 运行版本树</h2>
+      <div id="runTree" class="tree"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel" id="summaryPanel">
+      <h2>拟合结果</h2>
+      <div id="summary" class="muted">选择候选与数据集后点击“多起点拟合”。</div>
+    </div>
+
+    <div class="panel">
+      <div class="tabs">
+        <div class="tab active" data-tab="nyquist" onclick="showTab('nyquist',this)">Nyquist</div>
+        <div class="tab" data-tab="bode" onclick="showTab('bode',this)">幅相图</div>
+        <div class="tab" data-tab="reim" onclick="showTab('reim',this)">实部/虚部</div>
+        <div class="tab" data-tab="resid" onclick="showTab('resid',this)">加权残差</div>
+        <div class="tab" data-tab="starts" onclick="showTab('starts',this)">多起点并排</div>
+        <div class="tab" data-tab="params" onclick="showTab('params',this)">参数/相关</div>
+        <div class="tab" data-tab="diag" onclick="showTab('diag',this)">秩亏诊断</div>
+      </div>
+      <div id="tab-nyquist" class="tabp"><canvas id="cvNyq" height="340"></canvas></div>
+      <div id="tab-bode" class="tabp" style="display:none">
+        <div class="grid2"><canvas id="cvMag" height="300"></canvas>
+          <canvas id="cvPhase" height="300"></canvas></div></div>
+      <div id="tab-reim" class="tabp" style="display:none">
+        <div class="grid2"><canvas id="cvReF" height="300"></canvas>
+          <canvas id="cvImF" height="300"></canvas></div></div>
+      <div id="tab-resid" class="tabp" style="display:none">
+        <canvas id="cvRes" height="320"></canvas></div>
+      <div id="tab-starts" class="tabp" style="display:none">
+        <div id="startsBox" class="starts"></div></div>
+      <div id="tab-params" class="tabp" style="display:none">
+        <div class="grid2"><div><h3 class="muted">参数值 / 标准误 / 界状态</h3>
+          <table id="resParams"></table></div>
+        <div><h3 class="muted">参数相关矩阵</h3><div class="corrwrap">
+          <table id="resCorr"></table></div></div></div></div>
+      <div id="tab-diag" class="tabp" style="display:none">
+        <div id="diagBox"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
