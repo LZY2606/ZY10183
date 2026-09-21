@@ -34,3 +34,6 @@ coverage/
 .vite/
 .turbo/
 *.tsbuildinfo
+
+# 本地运行数据库（运行记录导出为 JSON 后即可脱离数据库复核）
+data/*.db

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>频弧辨证台</title>
+<link rel="stylesheet" href="/static/app.css?v=1.0.0">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">频弧辨证台</div>
+  <div class="sub">有限频段 EIS 等效电路可辨识性对照 · R / C / L / CPE / Warburg</div>
+  <div class="actions">
+    <button id="btn-export" class="ghost">导出运行记录(JSON)</button>
+    <label class="ghost file-btn">导入复核<input id="file-import" type="file" accept=".json,application/json" hidden></label>
+    <button id="btn-reset" class="danger ghost">清空并重建 fixture</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button data-tab="data" class="tab active">① 数据口径</button>
+  <button data-tab="circuits" class="tab">② 候选电路</button>
+  <button data-tab="fit" class="tab">③ 拟合对照</button>
+  <button data-tab="runs" class="tab">④ 版本树</button>
+  <button data-tab="conv" class="tab">⑤ 约定说明</button>
+</nav>
+
+<main>
+  <!-- 数据 -->
+  <section id="tab-data" class="panel active">
+    <div class="grid2">
+      <div class="card">
+        <h3>数据集</h3>
+        <div id="dataset-list" class="list"></div>
+        <h4 style="margin-top:18px">导入文本数据</h3>
+        <p class="hint">列：<code>freq_hz,z_re,z_im[,sigma_re,sigma_im]</code>；f≤0 不入对数轴，原始行号会报出。</p>
+        <input id="new-ds-name" placeholder="数据集名称" value="新数据集">
+        <textarea id="new-ds-text" rows="7" placeholder="freq_hz,z_re,z_im
+100,110,-5&#10;10,95,-40"></textarea>
+        <button id="btn-new-ds" class="primary">解析并入库</button>
+        <div id="ds-parse-msg"></div>
+      </div>
+      <div class="card">
+        <h3>明细与排除行 <span id="ds-title" class="dim"></span></h3>
+        <div id="excluded-box"></div>
+        <div class="table-wrap"><table id="points-table"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 电路 -->
+  <section id="tab-circuits" class="panel">
+    <div class="grid2">
+      <div class="card">
+        <h3>候选电路（可并存多个）</h3>
+        <div id="circuit-list" class="list"></div>
+        <h4 style="margin-top:18px">新建候选</h4>
+        <input id="new-c-name" placeholder="名称，如 C4_Warburg">
+        <input id="new-c-text" placeholder="电路文本，如 Rs+(Rct|Q1)+W1">
+        <div class="row">
+          <button id="btn-preview" class="ghost">解析/预览参数</button>
+          <button id="btn-new-c" class="primary">保存候选</button>
+        </div>
+        <div id="circuit-msg"></div>
+      </div>
+      <div class="card">
+        <h3>参数表（单位 / 上下界 / 固定 / 共享组）</h3>
+        <div class="table-wrap tall"><table id="param-table"></table></div>
+        <button id="btn-save-params" class="primary">保存参数修改</button>
+        <span id="param-msg" class="dim"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 拟合 -->
+  <section id="tab-fit" class="panel">
+    <div class="card">
+      <div class="row wrap">
+        <label>数据集 <select id="fit-dataset"></select></label>
+        <label>权重
+          <select id="fit-weight">
+            <option value="sigma">σ 加权（数据列）</option>
+            <option value="unit">等权 unit</option>
+            <option value="modulus">幅模 modulus（σ=|Z|）</option>
+          </select>
+        </label>
+        <label>起点数 <input id="fit-starts" type="number" value="12" min="1" max="40" style="width:70px"></label>
+        <button id="btn-fit-all" class="primary">并排拟合全部候选</button>
+        <span id="fit-busy" class="dim"></span>
+      </div>
+    </div>
+    <div id="fit-cards" class="cards"></div>
+  </section>
+
+  <!-- 版本 -->
+  <section id="tab-runs" class="panel">
+    <div class="card">
+      <h3>运行版本树（父版本在固定参数/改权重后保留）</h3>
+      <div id="run-tree"></div>
+    </div>
+  </section>
+
+  <!-- 约定 -->
+  <section id="tab-conv" class="panel">
+    <div class="card" id="conv-card"><h3>数据口径与数值约定</h3><div id="conv-body"></div></div>
+  </section>
+</main>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head"><b id="modal-title">运行详情</b><button id="modal-close" class="ghost">×</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=1.0.0"></script>
+</body>
+</html>
